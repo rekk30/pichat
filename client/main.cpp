@@ -1,4 +1,6 @@
 #include <PipeWriter.h>
+#include <Serializer.h>
+#include <Credentials.h>
 #include "Client.h"
 
 #include <iostream>
@@ -14,18 +16,29 @@ int main(int argc, char* argv[])
 {
   std::cout << "Client" << std::endl;
 
-  PipeWriter writer;
+  Credentials creds("username", "usr12345");
+  Serializer ser;
+  PipeReader read;
+  PipeWriter write;
 
-  if(!writer.open(PATH))
+  if(!write.open(PATH))
   {
     std::cout << "Pipe open error" << std::endl;
+    return 1;
   }
 
-  // Client client;
-  // std::string msg;
-  // std::getline(std::cin, msg);
+  Client client(creds, ser, read, write);
+  if(client.connect())
+  {
+    std::cout << "Client connected" << std::endl;
+  }
 
-  // writer.write(msg);
+  std::string msg;
+  while(true)
+  {
+    std::getline(std::cin, msg);
+    client.sendMessage(msg);
+  }
 
   return 0;
 }

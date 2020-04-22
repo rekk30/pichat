@@ -1,4 +1,5 @@
 #include "PipeReader.h"
+#include <iostream>
 
 PipeReader::~PipeReader()
 {

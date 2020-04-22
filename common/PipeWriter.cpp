@@ -17,5 +17,6 @@ bool PipeWriter::open(std::string path)
 
 void PipeWriter::write(std::string_view msg)
 {
-  mPipe << msg << '\0';
+  mPipe << msg << std::endl;
+  mPipe.flush();
 }

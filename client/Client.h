@@ -6,12 +6,14 @@
 #include <Messages.h>
 
 #include <thread>
+#include <chrono>
+#include <future>
 #include <iostream>
 
 class Client
 {
 public:
-  Client(ICredentials& creds, IReader& reader, IWriter& writer);
+  Client(ICredentials&, ISerializer&, IReader&, IWriter&);
 
   bool connect();
   void sendMessage(std::string_view msg);
@@ -27,4 +29,5 @@ private:
   IWriter& mWriter;
 
   std::thread mReaderThread;
+  std::promise<bool> mLoginPromise;
 };

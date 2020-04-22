@@ -17,8 +17,8 @@ struct Login
 
 enum class ELoginStatus : uint8_t
 {
-  Failed,
-  Succeeded
+  Failed = 0,
+  Succeeded = 1
 };
 
 struct LoginStatus

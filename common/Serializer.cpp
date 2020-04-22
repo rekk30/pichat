@@ -1,12 +1,22 @@
 #include "Serializer.h"
 
+namespace {
+template <typename T>
+auto parse_int(const char* first, const char* last, T& val)
+-> std::pair<const char*, bool>
+{
+    auto[ptr, ec] = std::from_chars(first, last, val);
+    return {ptr, ec == std::errc()};
+}
+} // anonimous
+
 bool Serializer::serialize(std::string& str, Login& pkg)
 {
-  str += pkg.name.size();
+  str += std::to_string(pkg.name.size());
   str += pkg.name;
-  str += pkg.key.size();
+  str += std::to_string(pkg.key.size());
   str += pkg.key;
-  str += pkg.path.size();
+  str += std::to_string(pkg.path.size());
   str += pkg.path;
 
   return true;
@@ -14,35 +24,50 @@ bool Serializer::serialize(std::string& str, Login& pkg)
 
 bool Serializer::serialize(std::string& str, LoginStatus& pkg)
 {
-  str += static_cast<uint8_t>(pkg.status);
+  str += std::to_string(static_cast<uint8_t>(pkg.status));
 
   return true;
 }
 
-bool Serializer::deserialize(std::string_view& str, Login& pkg)
+bool Serializer::deserialize(std::string_view str, Login& pkg)
 {
-  size_t index = 0;
-  size_t size = 0;
+  bool result{false};
+  size_t size{0};
 
-  size = std::stoul(str.substr(index, sizeof(size_t)));
-  index += sizeof(size_t);
-  pkg.name = str.substr(index, size);
-  index += size;
+  auto ptr = str.begin();
+  do
+  {
+    if(std::tie(ptr, result) = parse_int(ptr, ptr + str.size(), size); !result)
+    {
+      break;
+    }
 
-  size = std::stoul(str.substr(index, sizeof(size_t)));
-  index += sizeof(size_t);
-  pkg.key = str.substr(index, size);
-  index += size;
+    pkg.name = {ptr, ptr+size};
+    ptr += size;
 
-  size = std::stoul(str.substr(index, sizeof(size_t)));
-  index += sizeof(size_t);
-  pkg.path = str.substr(index, size);
-  index += size;
+    if(std::tie(ptr, result) = parse_int(ptr, ptr + str.size(), size); !result)
+    {
+      break;
+    }
 
-  return true;
+    pkg.key = {ptr, ptr+size};
+    ptr += size;
+
+    if(std::tie(ptr, result) = parse_int(ptr, ptr + str.size(), size); !result)
+    {
+      break;
+    }
+
+    pkg.path = {ptr, ptr+size};
+    ptr += size;
+
+    result = true;
+  } while (false);
+
+  return result;
 }
 
-bool Serializer::deserialize(std::string_view& str, LoginStatus& pkg)
+bool Serializer::deserialize(std::string_view str, LoginStatus& pkg)
 {
   uint8_t val;
   std::from_chars(str.data(),str.data() + str.size(), val);
