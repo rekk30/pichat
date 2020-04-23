@@ -38,7 +38,10 @@ bool Client::connect()
   {
     result = mSerializer.serialize(data, loginMsg);
     if(!result)
+    {
+      std::cout << "Login msg serialization error" << std::endl;
       break;
+    }
 
     mWriter.write(data);
 
@@ -51,6 +54,7 @@ bool Client::connect()
     else
     {
       result = loginFuture.get();
+      mConnected = true;
     }
   } while(false);
 
@@ -59,11 +63,41 @@ bool Client::connect()
 
 void Client::sendMessage(std::string_view msg)
 {
-  mWriter.write(msg);
+  Message packet;
+  packet.key = mCredentials.getPublicKey();
+  packet.message = msg;
+  std::string data;
+
+  if(mSerializer.serialize(data, packet))
+  {
+    mWriter.write(data);
+  }
 }
 
 void Client::handleMessage(std::string_view msg)
 {
-  std::cout << "Received msg: " << std::endl
-            << msg              << std::endl;
+  switch(mSerializer.getType(msg))
+  {
+  case EMessage::LoginStatus:
+  {
+    std::cout << "Login status packet: " << std::endl << msg << std::endl;
+    LoginStatus packet;
+    if(!mSerializer.deserialize(msg, packet))
+    {
+      std::cout << "Wrong login status packet" << std::endl;
+      break;
+    }
+
+    mLoginPromise.set_value(packet.status == ELoginStatus::Succeeded);
+    break;
+  }
+  case EMessage::Message:
+    std::cout << "New message received: " << std::endl
+              << msg << std::endl;
+
+    break;
+  default:
+    std::cout << "Wrong message: " << std::endl
+              << msg << std::endl;
+  }
 }

@@ -4,8 +4,10 @@
 
 enum class EMessage : uint8_t
 {
+  Error,
   Login,
-  LoginStatus
+  LoginStatus,
+  Message
 };
 
 struct Login
@@ -24,4 +26,10 @@ enum class ELoginStatus : uint8_t
 struct LoginStatus
 {
   ELoginStatus status;
+};
+
+struct Message
+{
+  std::string key;
+  std::string message;
 };

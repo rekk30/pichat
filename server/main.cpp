@@ -1,3 +1,4 @@
+#include "Server.h"
 #include <iostream>
 #include <string>
 #include <fcntl.h>
@@ -9,27 +10,21 @@
 
 const std::string PATH{"/tmp/pichat"};
 
-void handler(std::string_view msg)
-{
-  std::cout << "New message received: " << std::endl
-            << msg << std::endl;
-}
-
 int main(int argc, char* argv[])
 {
   std::cout << "Server" << std::endl;
 
   mkfifo(PATH.c_str(), 0666);
   PipeReader reader;
+  Serializer serializer;
 
   if(!reader.open(PATH))
   {
     std::cout << "File open error" << std::endl;
   }
+  Server server(serializer, reader);
 
-  reader.setHandler(handler);
-
-  reader.startLoop();
+  server.start();
 
   unlink(PATH.c_str());
 
