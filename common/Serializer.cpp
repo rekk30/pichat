@@ -44,6 +44,8 @@ bool Serializer::serialize(std::string& str, LoginStatus& pkg)
 bool Serializer::serialize(std::string& str, Message& pkg)
 {
   str += std::to_string(static_cast<uint8_t>(EMessage::Message));
+  str += std::to_string(pkg.name.size());
+  str += pkg.name;
   str += std::to_string(pkg.key.size());
   str += pkg.key;
   str += std::to_string(pkg.message.size());
@@ -107,6 +109,14 @@ bool Serializer::deserialize(std::string_view str, Message& pkg)
   auto ptr = str.begin()+1;
   do
   {
+    if(std::tie(ptr, result) = parse_int(ptr, ptr + str.size(), size); !result)
+    {
+      break;
+    }
+
+    pkg.name = {ptr, ptr+size};
+    ptr += size;
+
     if(std::tie(ptr, result) = parse_int(ptr, ptr + str.size(), size); !result)
     {
       break;

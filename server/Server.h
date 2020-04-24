@@ -23,6 +23,8 @@ public:
 
   void start();
   void handleMessage(std::string_view msg);
+  void handle(Login packet);
+  void handle(Message packet);
 
 private:
   ISerializer& mSerializer;

@@ -21,7 +21,6 @@ bool Client::connect()
   std::string readerPath
     = "/tmp/" + mCredentials.getName() + mCredentials.getPublicKey();
 
-  mReader.open(readerPath);
   mReader.setHandler(std::bind(&Client::handleMessage, this, _1));
   mReaderThread = std::thread{[&]{mReader.startLoop();}};
   std::future loginFuture = mLoginPromise.get_future();
@@ -64,6 +63,7 @@ bool Client::connect()
 void Client::sendMessage(std::string_view msg)
 {
   Message packet;
+  packet.name = mCredentials.getName();
   packet.key = mCredentials.getPublicKey();
   packet.message = msg;
   std::string data;
@@ -80,7 +80,6 @@ void Client::handleMessage(std::string_view msg)
   {
   case EMessage::LoginStatus:
   {
-    std::cout << "Login status packet: " << std::endl << msg << std::endl;
     LoginStatus packet;
     if(!mSerializer.deserialize(msg, packet))
     {
@@ -92,10 +91,19 @@ void Client::handleMessage(std::string_view msg)
     break;
   }
   case EMessage::Message:
-    std::cout << "New message received: " << std::endl
-              << msg << std::endl;
+  {
+    Message packet;
+    if(!mSerializer.deserialize(msg, packet))
+    {
+      std::cout << "Wrong message packet" << std::endl;
+      break;
+    }
+
+    std::cout << COLOR_BLUE   << packet.name << ": "
+              << COLOR_NORMAL << packet.message << std::endl;
 
     break;
+  }
   default:
     std::cout << "Wrong message: " << std::endl
               << msg << std::endl;

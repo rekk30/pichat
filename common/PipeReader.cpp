@@ -11,7 +11,7 @@ PipeReader::~PipeReader()
 
 bool PipeReader::open(std::string path)
 {
-  mPipe.open(path);
+  mPipe.open(path, std::ifstream::in | std::ifstream::out);
 
   return mPipe.is_open();
 }

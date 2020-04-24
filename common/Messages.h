@@ -30,6 +30,7 @@ struct LoginStatus
 
 struct Message
 {
+  std::string name;
   std::string key;
   std::string message;
 };
