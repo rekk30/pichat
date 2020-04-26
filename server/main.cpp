@@ -16,13 +16,12 @@ int main(int argc, char* argv[])
 
   mkfifo(PATH.c_str(), 0666);
   PipeReader reader;
-  Serializer serializer;
 
   if(!reader.open(PATH))
   {
     std::cout << "File open error" << std::endl;
   }
-  Server server(serializer, reader);
+  Server server(reader);
 
   server.start();
 

@@ -1,5 +1,6 @@
 #pragma once
-#include <string_view>
+#include "ByteArray.h"
+#include <string>
 
 class IWriter
 {
@@ -7,5 +8,5 @@ public:
   virtual ~IWriter() = default;
 
   virtual bool open(std::string) = 0;
-  virtual void write(std::string_view) = 0;
+  virtual void write(const ByteArray&) = 0;
 };

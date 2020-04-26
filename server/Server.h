@@ -2,7 +2,6 @@
 #include <PipeReader.h>
 #include <PipeWriter.h>
 #include <Credentials.h>
-#include <Serializer.h>
 #include <Messages.h>
 
 #include <map>
@@ -19,15 +18,14 @@ struct User
 class Server
 {
 public:
-  Server(ISerializer&, IReader&);
+  Server(IReader&);
 
   void start();
-  void handleMessage(std::string_view msg);
+  void handleMessage(ByteArray msg);
   void handle(Login packet);
   void handle(Message packet);
 
 private:
-  ISerializer& mSerializer;
   IReader& mReader;
 
   std::map<std::string, User> mUsers;

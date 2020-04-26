@@ -1,6 +1,5 @@
 add_library(common STATIC PipeReader.cpp
                           PipeWriter.cpp
-                          Serializer.cpp
                           Credentials.cpp
 )
 

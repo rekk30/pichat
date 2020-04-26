@@ -2,7 +2,6 @@
 #include <PipeReader.h>
 #include <PipeWriter.h>
 #include <Credentials.h>
-#include <Serializer.h>
 #include <Messages.h>
 
 #include <thread>
@@ -19,17 +18,16 @@
 class Client
 {
 public:
-  Client(ICredentials&, ISerializer&, IReader&, IWriter&);
+  Client(ICredentials&, IReader&, IWriter&);
 
   bool connect();
   void sendMessage(std::string_view msg);
-  void handleMessage(std::string_view msg);
+  void handleMessage(ByteArray msg);
 
 private:
   bool mConnected{false};
 
   ICredentials& mCredentials;
-  ISerializer& mSerializer;
 
   IReader& mReader;
   IWriter& mWriter;

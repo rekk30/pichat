@@ -1,11 +1,9 @@
 #include "Client.h"
 
 Client::Client(ICredentials& creds,
-               ISerializer& serializer,
                IReader& reader,
                IWriter& writer)
   : mCredentials{creds}
-  , mSerializer{serializer}
   , mReader{reader}
   , mWriter{writer}
 {
@@ -31,12 +29,11 @@ bool Client::connect()
   loginMsg.path = readerPath;
 
   bool result{false};
-  std::string data;
+  ByteArray data;
 
   do
   {
-    result = mSerializer.serialize(data, loginMsg);
-    if(!result)
+    if(!loginMsg.serialize(data))
     {
       std::cout << "Login msg serialization error" << std::endl;
       break;
@@ -66,22 +63,25 @@ void Client::sendMessage(std::string_view msg)
   packet.name = mCredentials.getName();
   packet.key = mCredentials.getPublicKey();
   packet.message = msg;
-  std::string data;
+  ByteArray data;
 
-  if(mSerializer.serialize(data, packet))
+  if(packet.serialize(data))
   {
     mWriter.write(data);
   }
 }
 
-void Client::handleMessage(std::string_view msg)
+void Client::handleMessage(ByteArray msg)
 {
-  switch(mSerializer.getType(msg))
+  uint8_t type{static_cast<uint8_t>(EMessage::Error)};
+  msg >> type;
+
+  switch(static_cast<EMessage>(type))
   {
   case EMessage::LoginStatus:
   {
     LoginStatus packet;
-    if(!mSerializer.deserialize(msg, packet))
+    if(!packet.deserialize(msg))
     {
       std::cout << "Wrong login status packet" << std::endl;
       break;
@@ -93,7 +93,7 @@ void Client::handleMessage(std::string_view msg)
   case EMessage::Message:
   {
     Message packet;
-    if(!mSerializer.deserialize(msg, packet))
+    if(!packet.deserialize(msg))
     {
       std::cout << "Wrong message packet" << std::endl;
       break;
@@ -105,7 +105,8 @@ void Client::handleMessage(std::string_view msg)
     break;
   }
   default:
-    std::cout << "Wrong message: " << std::endl
-              << msg << std::endl;
+    std::cout << "Wrong message: " << std::endl;
+    std::copy(msg.begin(), msg.end(),
+              std::ostream_iterator<int>(std::cout, " "));
   }
 }

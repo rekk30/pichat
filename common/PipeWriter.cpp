@@ -10,13 +10,13 @@ PipeWriter::~PipeWriter()
 
 bool PipeWriter::open(std::string path)
 {
-  mPipe.open(path);
+  mPipe.open(path, std::ios::in | std::ios::binary);
 
   return mPipe.is_open();
 }
 
-void PipeWriter::write(std::string_view msg)
+void PipeWriter::write(const ByteArray& msg)
 {
-  mPipe << msg << std::endl;
-  mPipe.flush();
+  mPipe.write(reinterpret_cast<const char*>(msg.data()), msg.size());
+  mPipe << std::endl;
 }

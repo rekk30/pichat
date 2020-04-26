@@ -1,8 +1,7 @@
 #include "Server.h"
 
-Server::Server(ISerializer& serializer, IReader& reader)
-  : mSerializer{serializer}
-  , mReader{reader}
+Server::Server(IReader& reader)
+  : mReader{reader}
 {
 }
 
@@ -14,14 +13,17 @@ void Server::start()
   mReader.startLoop();
 }
 
-void Server::handleMessage(std::string_view msg)
+void Server::handleMessage(ByteArray msg)
 {
-  switch(mSerializer.getType(msg))
+  uint8_t type{static_cast<uint8_t>(EMessage::Error)};
+  msg >> type;
+
+  switch(static_cast<EMessage>(type))
   {
   case EMessage::Login:
   {
     Login packet;
-    if(!mSerializer.deserialize(msg, packet))
+    if(!packet.deserialize(msg))
     {
       std::cout << "Wrong login packet" << std::endl;
       break;
@@ -34,7 +36,7 @@ void Server::handleMessage(std::string_view msg)
   {
     Message packet;
 
-    if(!mSerializer.deserialize(msg, packet))
+    if(!packet.deserialize(msg))
     {
       std::cout << "Wrong message packet" << std::endl;
       break;
@@ -44,8 +46,9 @@ void Server::handleMessage(std::string_view msg)
     break;
   }
   default:
-    std::cout << "Wrong message: " << std::endl
-              << msg << std::endl;
+    std::cout << "Wrong message: " << std::endl;
+    std::copy(msg.begin(), msg.end(),
+              std::ostream_iterator<int>(std::cout, " "));
   }
 }
 
@@ -64,11 +67,10 @@ void Server::handle(Login packet)
 
     mUsers.emplace(packet.key, std::move(newUser));
 
-    std::string data;
+    ByteArray data;
     LoginStatus status{ELoginStatus::Succeeded};
 
-    auto serResult = mSerializer.serialize(data, status);
-    if(!serResult)
+    if(!status.serialize(data))
     {
       std::cout << "Serialization failed" << std::endl;
       return;
@@ -87,8 +89,8 @@ void Server::handle(Message packet)
       std::cout << "Message from unauthorized used" << std::endl;
     }
 
-    std::string data;
-    if(!mSerializer.serialize(data, packet))
+    ByteArray data;
+    if(!packet.serialize(data))
     {
       return;
     }
