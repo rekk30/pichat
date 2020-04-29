@@ -1,14 +1,13 @@
 #pragma once
 #include <PipeReader.h>
 #include <PipeWriter.h>
-#include <Credentials.h>
 #include <Messages.h>
 
 #include <map>
 #include <memory>
 #include <iostream>
 
-struct User
+struct UserConnection
 {
   std::string name;
   std::string path;
@@ -22,11 +21,12 @@ public:
 
   void start();
   void handleMessage(ByteArray msg);
-  void handle(Login packet);
+  void handle(LoginRequest packet);
   void handle(Message packet);
+  void handle(RoomInfoRequest packet);
 
 private:
   IReader& mReader;
 
-  std::map<std::string, User> mUsers;
+  std::map<std::string, UserConnection> mUsers;
 };

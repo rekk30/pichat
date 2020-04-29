@@ -14,6 +14,7 @@ int main(int argc, char* argv[])
 {
   std::cout << "Server" << std::endl;
 
+  unlink(PATH.c_str());
   mkfifo(PATH.c_str(), 0666);
   PipeReader reader;
 
@@ -24,8 +25,6 @@ int main(int argc, char* argv[])
   Server server(reader);
 
   server.start();
-
-  unlink(PATH.c_str());
 
   return 0;
 }

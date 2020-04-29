@@ -1,5 +1,4 @@
 #include <PipeWriter.h>
-#include <Credentials.h>
 #include "Client.h"
 
 #include <iostream>
@@ -7,47 +6,51 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <csignal>
 #include <unistd.h>
 #include <cerrno>
 
 const std::string PATH{"/tmp/pichat"};
+std::string USER_PATH;
+
+void exitHandler(int s)
+{
+  unlink(USER_PATH.c_str());
+  exit(0);
+}
 
 int main(int argc, char* argv[])
 {
+  std::signal(SIGINT, exitHandler);
+
   std::string name;
   std::cout << CLEAR_SCREEN;
   std::cout << "Enter your name: ";
   std::getline(std::cin, name);
   std::cout << CLEAR_LINE;
 
-  Credentials creds(name, name);
   PipeReader read;
   PipeWriter write;
 
-  std::string usrPath = "/tmp/" + creds.getName() + creds.getPublicKey();
-  mkfifo(usrPath.c_str(), 0666);
+  std::string id{name};
+  USER_PATH = "/tmp/" + name;
+  mkfifo(USER_PATH.c_str(), 0666);
 
-  std::cout << "Opening reading pipe" << std::endl;
-  if(!read.open(usrPath))
+  if(!read.open(USER_PATH))
   {
     std::cout << "Pipe open reader error" << std::endl;
     return 1;
   }
 
-  std::cout << "Opening writing pipe" << std::endl;
   if(!write.open(PATH))
   {
     std::cout << "Pipe open writer error" << std::endl;
     return 1;
   }
 
-  std::cout << "Creating client" << std::endl;
-  Client client(creds, read, write);
+  Client client(read, write, std::move(name), std::move(id));
   if(client.connect())
   {
-    std::cout << COLOR_GREEN << "Client connected"
-              << COLOR_NORMAL << std::endl;
-
     std::string msg;
     while(true)
     {
@@ -56,11 +59,7 @@ int main(int argc, char* argv[])
       client.sendMessage(msg);
     }
   }
-  else
-  {
-    std::cout << "Connection failed" << std::endl;
-  }
 
-  unlink(usrPath.c_str());
+  unlink(USER_PATH.c_str());
   return 0;
 }

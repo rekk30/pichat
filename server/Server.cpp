@@ -20,12 +20,12 @@ void Server::handleMessage(ByteArray msg)
 
   switch(static_cast<EMessage>(type))
   {
-  case EMessage::Login:
+  case EMessage::LoginRequest:
   {
-    Login packet;
+    LoginRequest packet;
     if(!packet.deserialize(msg))
     {
-      std::cout << "Wrong login packet" << std::endl;
+      std::cout << "Wrong login request packet" << std::endl;
       break;
     }
     handle(packet);
@@ -45,6 +45,19 @@ void Server::handleMessage(ByteArray msg)
 
     break;
   }
+  case EMessage::RoomInfoRequest:
+  {
+    RoomInfoRequest packet;
+
+    if(!packet.deserialize(msg))
+    {
+      std::cout << "Wrong RoomInfoRequest packet" << std::endl;
+      break;
+    }
+    handle(packet);
+
+    break;
+  }
   default:
     std::cout << "Wrong message: " << std::endl;
     std::copy(msg.begin(), msg.end(),
@@ -52,51 +65,92 @@ void Server::handleMessage(ByteArray msg)
   }
 }
 
-void Server::handle(Login packet)
+void Server::handle(LoginRequest packet)
 {
-    auto userWriter = std::make_unique<PipeWriter>();
-    if(!userWriter->open(packet.path))
-    {
-      std::cout << "Wrong user pipe" << std::endl;
-      return;
-    }
+  auto userWriter = std::make_unique<PipeWriter>();
+  if(!userWriter->open(packet.path))
+  {
+    std::cout << "Wrong user pipe" << std::endl;
 
-    User newUser{std::move(packet.name),
-                 std::move(packet.path),
-                 std::move(userWriter)};
+    return;
+  }
 
-    mUsers.emplace(packet.key, std::move(newUser));
+  UserConnection newUser{std::move(packet.name),
+                          std::move(packet.path),
+                          std::move(userWriter)};
 
-    ByteArray data;
-    LoginStatus status{ELoginStatus::Succeeded};
+  mUsers.emplace(packet.id, std::move(newUser));
 
-    if(!status.serialize(data))
-    {
-      std::cout << "Serialization failed" << std::endl;
-      return;
-    }
+  ByteArray data;
+  LoginResponse status{ELoginStatus::Succeeded};
 
-    auto& user = mUsers.at(packet.key);
-    user.writer->write(data);
-    std::cout << "New user \"" << user.name << "\"" << std::endl;
+  if(!status.serialize(data))
+  {
+    std::cout << "Serialization failed" << std::endl;
+    return;
+  }
+
+  auto& user = mUsers.at(packet.id);
+  user.writer->write(data);
+  std::cout << "New user \"" << user.name << "\"" << std::endl;
+
+  RoomInfoResponse resp;
+  for(const auto&[id, user] : mUsers)
+  {
+    resp.users.emplace_back(User{id, user.name});
+  }
+
+  ByteArray infoData;
+  if(!resp.serialize(infoData))
+  {
+    return;
+  }
+
+  for(const auto& user : mUsers)
+  {
+    user.second.writer->write(infoData);
+  }
 }
 
 void Server::handle(Message packet)
 {
-    auto it = mUsers.find(packet.key);
-    if(it == mUsers.end())
-    {
-      std::cout << "Message from unauthorized used" << std::endl;
-    }
+  auto it = mUsers.find(packet.id);
+  if(it == mUsers.end())
+  {
+    std::cout << "Message from unauthorized user" << std::endl;
+  }
 
-    ByteArray data;
-    if(!packet.serialize(data))
-    {
-      return;
-    }
+  ByteArray data;
+  if(!packet.serialize(data))
+  {
+    return;
+  }
 
-    for(auto &[_, user] : mUsers)
-    {
-      user.writer->write(data);
-    }
+  for(auto &[_, user] : mUsers)
+  {
+    user.writer->write(data);
+  }
+}
+
+void Server::handle(RoomInfoRequest packet)
+{
+  auto it = mUsers.find(packet.id);
+  if(it == mUsers.end())
+  {
+    std::cout << "RoomInfoRequest from unauthorized user" << std::endl;
+  }
+
+  RoomInfoResponse resp;
+  for(const auto&[id, user] : mUsers)
+  {
+    resp.users.emplace_back(User{id, user.name});
+  }
+
+  ByteArray data;
+  if(!resp.serialize(data))
+  {
+    return;
+  }
+
+  (*it).second.writer->write(data);
 }
